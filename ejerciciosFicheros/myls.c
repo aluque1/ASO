@@ -63,9 +63,5 @@ int main(int argc, char const *argv[])
 			exit(EXIT_FAILURE);
 		}
 	}
-
-
-	lstat(argv[1], stat_buff); // stat buffer init
-
 	return 0;
 }
