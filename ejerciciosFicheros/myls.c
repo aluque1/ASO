@@ -10,7 +10,6 @@
 
 extern char *optarg;
 
-int get_size_dir(char *dname, size_t *blocks);
 int do_ls(char *path, struct stat *stat_buff);
 
 int main(int argc, char *argv[])
@@ -25,40 +24,39 @@ int main(int argc, char *argv[])
 
 	while ((opt = getopt(argc, argv, "hd:f:")) != -1)
 	{
+		switch (opt)
 		{
-			switch (opt)
+		case 'd':
+			path = optarg;
+			lstat(path, stat_buff);
+			if (S_ISDIR(stat_buff->st_mode) == 1 && (stat_buff->st_mode & (S_IRUSR | S_IXUSR)))
 			{
-			case 'd':
-				path = optarg;
-				lstat(path, stat_buff);
-				if (S_ISDIR(stat_buff->st_mode) == 1 && (stat_buff->st_mode & (S_IRUSR | S_IXUSR)) )
+				if ((dir = opendir(path)) != NULL)
 				{
-					if ((dir = opendir(path)) != NULL)
+					while ((buff = readdir(dir)) != NULL)
 					{
-						while ((buff = readdir(dir)) != NULL)
-						{
-							name = buff->d_name;
-							lstat(name, temp);
-							do_ls(name, temp);
-						}
+						name = buff->d_name;
+						lstat(name, temp);
+						do_ls(name, temp);
 					}
 				}
-				break;
-
-			case 'f':
-				path = optarg;
-				lstat(path, stat_buff);
-				if (S_ISREG(stat_buff->st_mode) == 1)
-				{
-					do_ls(path, stat_buff);
-				}
-				break;
-			default:
-				fprintf(stderr, "Usage: %s [-d ruta_directorio][-f ruta_fichero_regular]\n", argv[0]);
-				exit(EXIT_FAILURE);
-				break;
 			}
+			break;
+
+		case 'f':
+			path = optarg;
+			lstat(path, stat_buff);
+			if (S_ISREG(stat_buff->st_mode) == 1)
+			{
+				do_ls(path, stat_buff);
+			}
+			break;
+		default:
+			fprintf(stderr, "Usage: %s [-d ruta_directorio][-f ruta_fichero_regular]\n", argv[0]);
+			exit(EXIT_FAILURE);
+			break;
 		}
+
 		return 0;
 	}
 }
