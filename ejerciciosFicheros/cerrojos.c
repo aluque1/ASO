@@ -6,6 +6,7 @@
 #include <libgen.h>
 #include <limits.h>
 #include <time.h>
+#include <sys/time.h>
 #include <sys/file.h>
 #include <fcntl.h>
 
@@ -38,10 +39,11 @@ void start_lock(short int type, struct flock *l){
 }
 
 char *get_time(){
+    char *frmt = "%F %T";
     time_t t = time(NULL);
     struct tm *tm = localtime(&t);
-    char *tiempo = malloc(255);
-    strftime(tiempo, 255, "%T", tm);
+    char *tiempo = malloc(20);
+    strftime(tiempo, 20, frmt, tm);
     return tiempo;
 }
 
@@ -62,8 +64,9 @@ void do_cerrojo(char *path)
         fcntl(fd, F_SETLK, l);
 
         char* time = get_time();
-        write(fd, time, sizeof(time));
-        sleep(1);
+        strcat(time, "\n");
+        write(fd, time, 20);
+        sleep(5);
 
         start_lock(F_UNLCK, l);
         fcntl(fd, F_SETLK, l);        
