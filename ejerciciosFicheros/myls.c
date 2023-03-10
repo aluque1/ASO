@@ -66,7 +66,7 @@ int do_ls(char *path, struct stat *stat_buff)
 	char buf[PATH_MAX];
 	if (S_ISREG(stat_buff->st_mode) == 1)
 	{
-		printf("%s (%0.2f kB, %d link)", path, (float)(stat_buff->st_size >> 10), stat_buff->st_nlink);
+		printf("%s (%0.2f kB, %ld link)", path, (float)(stat_buff->st_size >> 10), stat_buff->st_nlink);
 		if (stat_buff->st_mode & S_IXUSR)
 		{
 			printf("*\n");
@@ -82,6 +82,6 @@ int do_ls(char *path, struct stat *stat_buff)
 	}
 	else if (S_ISDIR(stat_buff->st_mode) == 1)
 	{
-		printf("[%s] (%d link)\n", path, stat_buff->st_nlink);
+		printf("[%s] (%ld link)\n", path, stat_buff->st_nlink);
 	}
 }
