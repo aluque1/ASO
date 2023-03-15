@@ -63,13 +63,15 @@ void do_cerrojo(char *path)
         fcntl(fd, F_SETLK, l);
 
         /* esto estaba como
-            write(fd, get_time(), sizeof(time));
+            
+            write(fd, time, sizeof(time));
 
             recordar que sizeof de un puntero te devuelve el 
             tamaño del puntero, no el tam del dato al que apunta
         */  
 
-        write(fd, get_time(), strlen(time));
+        char *time = get_time();
+        write(fd, time, strlen(time));
         sleep(5);
 
         start_lock(F_UNLCK, l);
