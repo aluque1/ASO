@@ -39,11 +39,10 @@ void start_lock(short int type, struct flock *l){
 }
 
 char *get_time(){
-    char *frmt = "%F %T";
     time_t t = time(NULL);
     struct tm *tm = localtime(&t);
     char *tiempo = malloc(20);
-    strftime(tiempo, 20, frmt, tm);
+    strftime(tiempo, 20, "%F %T \n", tm);
     return tiempo;
 }
 
@@ -63,9 +62,14 @@ void do_cerrojo(char *path)
         start_lock(F_WRLCK, l);
         fcntl(fd, F_SETLK, l);
 
-        char* time = get_time();
-        strcat(time, "\n");
-        write(fd, time, 20);
+        /* esto estaba como
+            write(fd, get_time(), sizeof(time));
+
+            recordar que sizeof de un puntero te devuelve el 
+            tamaño del puntero, no el tam del dato al que apunta
+        */  
+
+        write(fd, get_time(), strlen(time));
         sleep(5);
 
         start_lock(F_UNLCK, l);
