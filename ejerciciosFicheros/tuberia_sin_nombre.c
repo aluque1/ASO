@@ -25,12 +25,16 @@ int main(int argc, char *argv[])
     }
     else if (pid1 == 0)
     {
+        
         // Hijo 1 (comando de argv[2])
         // rerouting of stdout
+
         dup2(pipefd[1], STDOUT_FILENO);
         close(pipefd[0]); // cerramos un extremo
         close(pipefd[1]); // cerramos el otro extremo creado por dupe
-        // execlp 
+
+         execlp(argv[1], argv[2], NULL);
+        //execlp("ls", "", NULL);
     }
 
     // como usamos exec no hace falta if para el padre
@@ -43,12 +47,14 @@ int main(int argc, char *argv[])
     }
     else if (pid2 == 0)
     {
-        // Hijo 2 (comando de argv[3])
+        // Hijo 2 (comando de argv[4])
         // rerouting of stdin
         dup2(pipefd[0], STDIN_FILENO);
         close(pipefd[0]); // cerramos un extremo
         close(pipefd[1]); // cerramos el otro extremo creado por dupe
         // execlp 
+         execlp(argv[3], argv[4], NULL);
+        //execlp("wc", "", NULL);
     }
 
     close(pipefd[0]); // cerramos un extremo
@@ -56,5 +62,6 @@ int main(int argc, char *argv[])
     
     waitpid(pid1, NULL, 0);
     waitpid(pid2, NULL, 0);
+
     return 0;
 }
