@@ -151,8 +151,8 @@ int analizaOrden(char **ordenPtr, struct job *job, int *esBg) {
     // Chequeo de seguridad
     if (!argc) {
         // Si no existen argumentos (orden vacia) liberar la memoria y
-	// preparar ordenPtr para continuar el procesamiento de la linea
-	liberaJob(job);
+	    // preparar ordenPtr para continuar el procesamiento de la linea
+	    liberaJob(job);
     	*ordenPtr = retornoOrden;
         return 1;
     }
@@ -182,37 +182,73 @@ int analizaOrden(char **ordenPtr, struct job *job, int *esBg) {
 // Implementación ordenes internas con chequeo de errores elemental:
 
 void ord_exit(struct job *job,struct listaJobs *listaJobs, int esBg) {
+    // Finalize all the jobs in the list
+    
 
-  // Finalizar todos los jobs
-
-  // Salir del programa
-  exit(EXIT_SUCCESS);
+    // Salir del programa
+    exit(EXIT_SUCCESS);
 }
 
 void ord_pwd(struct job *job,struct listaJobs *listaJobs, int esBg) {
-
-   // Mostrar directorio actual
+    // Print the current working directory
+    char cwd[1024];
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        fprintf(stdout, "%s \n", cwd);
+    } else {
+        perror("getcwd() error");
+    }
 }
 
 void ord_cd(struct job *job,struct listaJobs *listaJobs, int esBg) {
-
-   // Cambiar al directorio especificado
-   // o al directorio raiz ($HOME) si no hay argumento
+    // Change to the specified directory
+    // or to the home directory if no argument is given
+    char *dir;
+    if (job->progs->argv[1] == NULL) {
+        dir = getenv("HOME");
+    } else {
+        dir = job->progs->argv[1];
+    }
+    if (chdir(dir) != 0) {
+        perror("chdir() error");
+    }
 }
 
 void ord_jobs(struct job *job,struct listaJobs *listaJobs, int esBg) {
+    // List all the jobs in the list with the following format:
+    // [job_id] status command
+    struct job *auxJob;
+    
+    // go through the list of jobs
+    for (auxJob = listaJobs->primero; auxJob != NULL; auxJob = auxJob = listaJobs->fg) {
+        // print the job id
+        printf("[%d] ", auxJob->jobId);
+        //TODO print the status
 
-   // Mostrar la lista de trabajos
+        // print the command
+        printf("%s \n", auxJob->texto);
+    }
 }
 
 void ord_wait(struct job *job,struct listaJobs *listaJobs, int esBg) {
-
-   // Esperar la finalización del job N
-
-   /* Para permitir interrumpir la espera es necesario cederle el
-      terminal de control y luego volver a recuperarlo (opcional) */
-
-      // Si existe y no esta parado, aguardar
+    // wait for the specified job to finish
+    // wait for all jobs if argv[1] is NULL
+    int jobId;
+    struct job *auxJob;
+    if (job->progs->argv[1] == NULL) {
+        // wait for all jobs
+        for (auxJob = listaJobs->primero; auxJob != NULL; auxJob = auxJob = listaJobs->fg) {
+            waitpid(auxJob->pgrp, NULL, 0);
+        }
+    } else {
+        // wait for the specified job
+        jobId = atoi(job->progs->argv[1]);
+        for (auxJob = listaJobs->primero; auxJob != NULL; auxJob = auxJob = listaJobs->fg) {
+            if (auxJob->jobId == jobId) {
+                waitpid(auxJob->pgrp, NULL, 0);
+                break;
+            }
+        }
+    }
 }
 
 void ord_kill(struct job *job,struct listaJobs *listaJobs, int esBg) {
