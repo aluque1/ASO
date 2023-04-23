@@ -247,7 +247,6 @@ void ord_jobs(struct job *job, struct listaJobs *listaJobs, int esBg)
         {
             printf("[%d] ", job_prev->jobId);
             // TODO ver si esto es a lo que se refiere el enunciado
-            printf("%s ", job_prev->runningProgs == 0 ? "Stopped" : "Running");
             printf("%s \n", job_prev->texto);
         }
     }
@@ -345,7 +344,7 @@ void ord_times(struct job *job, struct listaJobs *listaJobs, int esBg)
     struct tm tm = *localtime(&t);
     char *tiempo = malloc(9);
     strftime(tiempo, 9, "%T", &tm);
-    printf("Current time: %s\n", tiempo); 
+    printf("Current time: %s\n", tiempo);
 }
 
 void ord_date(struct job *job, struct listaJobs *listaJobs, int esBg)
@@ -374,13 +373,40 @@ void ord_externa(struct job *job, struct listaJobs *listaJobs, int esBg)
 
     // Crear un nuevo trabajo a partir de la informacion de job
 
-    // Insertar Job en la lista (el jobID se asigna de manera automatica)
+    // Insertar Job en la lista (el jobID se asigna de manera automatica
 
     // Si no se ejecuta en background
 
     // Cederle el terminal de control y actualizar listaJobs->fg
 
     // De lo contrario, informar por pantalla de su ejecucion
+    pid_t pid = fork();
+
+    if (pid != 0)
+    {
+        // Si es foreground
+        if (esBg)
+        {
+            tcsetpgrp(STDIN_FILENO, pid);
+            listaJobs->fg = job;
+        }
+        // Si es background
+        else
+        {
+            printf("[%d] %d\n", job->jobId, pid);
+        }
+    }
+    else if (pid == 0)
+    {
+        // crea un nuevo grupo de procesos
+        setpgid(0, 0);
+        // ejecuta el programa con los argumentos adecuados
+        execvp(job->progs[0].argv[0], job->progs[0].argv);
+    }
+    else
+    {
+        perror("Fork not created");
+    }
 }
 
 // Realiza la ejecución de la orden
