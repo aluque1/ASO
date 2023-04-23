@@ -1,4 +1,5 @@
 /* shell_orden.c -- rutinas relativas a tratamiento de ordenes */
+#define _GNU_SOURCE // added so the vscode linter doesn't bug out
 
 #include <ctype.h>
 #include <errno.h>
@@ -11,6 +12,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/times.h>
+#include <sys/resource.h>
 #include "shell.h"
 
 extern char **environ;
@@ -181,16 +183,21 @@ int analizaOrden(char **ordenPtr, struct job *job, int *esBg) {
 
 // Implementación ordenes internas con chequeo de errores elemental:
 
+// TODO. check if this works
 void ord_exit(struct job *job,struct listaJobs *listaJobs, int esBg) {
-    // Finalize all the jobs in the list
-    
-
-    // Salir del programa
+    struct job *auxJob;
+    for (auxJob = listaJobs->primero; auxJob != NULL; auxJob = listaJobs->fg) {
+        if (kill(auxJob->progs->pid, SIGKILL) == -1) {
+            perror("kill() error");
+        }
+        if (waitpid(auxJob->progs->pid, NULL, 0) == -1) {
+            perror("waitpid() error");
+        }
+    }
     exit(EXIT_SUCCESS);
 }
 
 void ord_pwd(struct job *job,struct listaJobs *listaJobs, int esBg) {
-    // Print the current working directory
     char cwd[1024];
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
         fprintf(stdout, "%s \n", cwd);
@@ -200,8 +207,6 @@ void ord_pwd(struct job *job,struct listaJobs *listaJobs, int esBg) {
 }
 
 void ord_cd(struct job *job,struct listaJobs *listaJobs, int esBg) {
-    // Change to the specified directory
-    // or to the home directory if no argument is given
     char *dir;
     if (job->progs->argv[1] == NULL) {
         dir = getenv("HOME");
@@ -214,35 +219,25 @@ void ord_cd(struct job *job,struct listaJobs *listaJobs, int esBg) {
 }
 
 void ord_jobs(struct job *job,struct listaJobs *listaJobs, int esBg) {
-    // List all the jobs in the list with the following format:
-    // [job_id] status command
     struct job *auxJob;
     
-    // go through the list of jobs
-    for (auxJob = listaJobs->primero; auxJob != NULL; auxJob = auxJob = listaJobs->fg) {
-        // print the job id
+    for (auxJob = listaJobs->primero; auxJob != NULL; auxJob = listaJobs->fg) {
         printf("[%d] ", auxJob->jobId);
-        //TODO print the status
-
-        // print the command
+        printf("%s ", auxJob->runningProgs == 0 ? "Stopped" : "Running");
         printf("%s \n", auxJob->texto);
     }
 }
 
 void ord_wait(struct job *job,struct listaJobs *listaJobs, int esBg) {
-    // wait for the specified job to finish
-    // wait for all jobs if argv[1] is NULL
     int jobId;
     struct job *auxJob;
     if (job->progs->argv[1] == NULL) {
-        // wait for all jobs
-        for (auxJob = listaJobs->primero; auxJob != NULL; auxJob = auxJob = listaJobs->fg) {
+        for (auxJob = listaJobs->primero; auxJob != NULL; auxJob = listaJobs->fg) {
             waitpid(auxJob->pgrp, NULL, 0);
         }
     } else {
-        // wait for the specified job
         jobId = atoi(job->progs->argv[1]);
-        for (auxJob = listaJobs->primero; auxJob != NULL; auxJob = auxJob = listaJobs->fg) {
+        for (auxJob = listaJobs->primero; auxJob != NULL; auxJob = listaJobs->fg) {
             if (auxJob->jobId == jobId) {
                 waitpid(auxJob->pgrp, NULL, 0);
                 break;
@@ -252,39 +247,55 @@ void ord_wait(struct job *job,struct listaJobs *listaJobs, int esBg) {
 }
 
 void ord_kill(struct job *job,struct listaJobs *listaJobs, int esBg) {
-
-    // Mandar una señal KILL al job N
-
-       // Si existe mandar la señal SIGKILL
+    int jobId;
+    struct job *auxJob;
+    jobId = atoi(job->progs->argv[1]);
+    for (auxJob = listaJobs->primero; auxJob != NULL; auxJob = listaJobs->fg) {
+        if (auxJob->jobId == jobId) {
+            kill(auxJob->pgrp, SIGKILL);
+            break;
+        }
+    }
 }
 
 void ord_stop(struct job *job,struct listaJobs *listaJobs, int esBg) {
-
-    // Mandar una señal STOP al job N
-
-      // Si existe mandar la señal SIGSTOP y poner su estado a parado
-      // (runningProgs = 0)
-
+    int jobId;
+    struct job *auxJob;
+    jobId = atoi(job->progs->argv[1]);
+    for (auxJob = listaJobs->primero; auxJob != NULL; auxJob = listaJobs->fg) {
+        if (auxJob->jobId == jobId) {
+            kill(auxJob->pgrp, SIGSTOP);
+            auxJob->runningProgs = 0;
+            break;
+        }
+    }
 }
 
 void ord_fg(struct job *job,struct listaJobs *listaJobs, int esBg) {
-
-    // Pasar el job N a foreground y mandar SIGCONT
-
-       // Si existe y esta parado
-
-          // Cederle el terminal de control y actualizar listaJobs->fg
-
-          // Mandar señal SIGCONT y actualizar su estado
+    int jobId;
+    struct job *auxJob;
+    jobId = atoi(job->progs->argv[1]);
+    for (auxJob = listaJobs->primero; auxJob != NULL; auxJob = listaJobs->fg) {
+        if (auxJob->jobId == jobId) {
+            tcsetpgrp(STDIN_FILENO, auxJob->pgrp);
+            kill(auxJob->pgrp, SIGCONT);
+            auxJob->runningProgs = 1;
+            break;
+        }
+    }
 }
 
 void ord_bg(struct job *job,struct listaJobs *listaJobs, int esBg) {
-
-    // Pasar el job N a background y mandar SIGCONT
-
-       // Si existe y esta parado
-
-          // Mandar señal SIGCONT y actualizar su estado
+    int jobId;
+    struct job *auxJob;
+    jobId = atoi(job->progs->argv[1]);
+    for (auxJob = listaJobs->primero; auxJob != NULL;auxJob = listaJobs->fg) {
+        if (auxJob->jobId == jobId) {
+            kill(auxJob->pgrp, SIGCONT);
+            auxJob->runningProgs = 1;
+            break;
+        }
+    }
 }
 
 
@@ -310,42 +321,61 @@ void timeval_to_secs (struct timeval *tvp, time_t *s, int *ms)
 }
 
 void ord_times(struct job *job,struct listaJobs *listaJobs, int esBg) {
+    struct rusage usage;
+    struct timeval user, system;
+    time_t user_s, system_s;
+    int user_ms, system_ms;
 
-    // Mostrar el tiempo acumulado de usuario y de sistema 
+    if (getrusage(RUSAGE_CHILDREN, &usage) == -1)
+        perror("getrusage() error");
+    else {
+        user = usage.ru_utime;
+        system = usage.ru_stime;
+        timeval_to_secs(&user, &user_s, &user_ms);
+        timeval_to_secs(&system, &system_s, &system_ms);
+        printf("User time: %ld.%03d\n", user_s, user_ms);
+        printf("System time: %ld.%03d\n", system_s, system_ms);
+    }
 }
 
 void ord_date(struct job *job,struct listaJobs *listaJobs, int esBg) {
-
-    // Mostrar la fecha actual
+    time_t t = time(NULL);
+    struct tm *tm = localtime(&t);
+    char s[64];
+    strftime(s, sizeof(s), "%F", tm);
+    printf("%s\n", s);
 }
 
 // Ejecución de un comando externo
 void ord_externa(struct job *job,struct listaJobs *listaJobs, int esBg) {
+    pid_t pid = fork();
 
-    // Duplicar proceso
-
-       // Hijo
-
-     	  // Crear un nuevo grupo de procesos
-
-
-	  // Ejecutar programa con los argumentos adecuados
-
-	  // Si la llamada a execvp retorna es que ha habido un error
-
-       // Padre
-
-    	  // Crear un nuevo trabajo a partir de la informacion de job
-
-     	  // Insertar Job en la lista (el jobID se asigna de manera automatica)
-
-     	  // Si no se ejecuta en background
-
-
-	     // Cederle el terminal de control y actualizar listaJobs->fg
-
-	  // De lo contrario, informar por pantalla de su ejecucion
-
+    if (pid == 0) 
+    {
+        setpgid(0, 0);
+        if(execvp(job->progs[0].argv[0], job->progs[0].argv)) {
+            perror("execvp");
+            exit(EXIT_FAILURE);
+        }
+    }
+    else if (pid > 0)
+    {
+        // Si es foreground
+        if (!esBg) {
+            tcsetpgrp(STDIN_FILENO, pid);
+            insertaJob(listaJobs, job, esBg);
+        }
+        // Si es background
+        else {
+            printf("[%d] %d\n", job->jobId, pid);
+            insertaJob(listaJobs, job, pid);
+        }
+    
+    }
+    else {
+        perror("fork");
+        exit(EXIT_FAILURE); 
+    }   
 }
 
 // Realiza la ejecución de la orden

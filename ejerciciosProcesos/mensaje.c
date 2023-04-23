@@ -10,17 +10,17 @@
 #include <string.h>
 #include <stdbool.h>
 char *msg_glob = "mensaje predeterminado\n";
-volatile int seconds;
+int seconds;
 volatile bool end = false;
 
 void mensaje();
 void alarm_handler(int signum);
 void termination_handler(int signum);
 void terminate_handler(int signum);
-char* get_time();
 
 int main(int argc, char *argv[])
 {
+    struct timeval init_time, end_time;
     if (argc > 3 || argc < 2)
     {
         fprintf(stderr, "Usage: %s segundos ['mensaje_opcional']\n para terminar ejecucion kill -15 <pid>", argv[0]);
@@ -31,31 +31,32 @@ int main(int argc, char *argv[])
         seconds = atoi(argv[1]);
         if (argc == 3)
         {
-            strcat(argv[2], "\n");
-            msg_glob = argv[2];
+            msg_glob = (char *) malloc((sizeof(char) * (strlen(argv[2])+2))); /* un carácter para el \n y otro carácter para el fin de cadena*/
+            strcat(msg_glob,argv[2]);
+            strcat(msg_glob,"\n");
+            
         }
+        gettimeofday(&init_time, NULL);
         mensaje();
+        gettimeofday(&end_time, NULL);
     }
 
-    struct rusage usage;
-    getrusage(RUSAGE_SELF, &usage);
-    printf("\nseconds since start : %lds\n", usage.ru_utime.tv_sec);
+    
+    
+    printf("\nseconds since start : %lds\n", end_time.tv_sec-init_time.tv_sec); /* esto es tiempo de CPU*/
 
     return 0;
 }
 
 void termination_handler(int signum)
 {
-    static char *term_msg = "\nCannot terminate using interupt signal; signum = 2\n";
+    char *term_msg = "\nCannot terminate using interupt signal; signum = 2\n";
     write(1, term_msg, strlen(term_msg));
 }
 
 void alarm_handler(int signum)
 {
-    static char *working_message;
-    working_message = msg_glob;
-    write(1, working_message, strlen(working_message));
-    alarm(seconds);
+    write(1, msg_glob, strlen(msg_glob));
 }
 
 void terminate_handler(int signum)
@@ -66,37 +67,33 @@ void terminate_handler(int signum)
 void mensaje()
 {
     /* Manejo de señal SIGINT */
-    struct sigaction act, oact_interupt;
-
-    act.sa_handler = &termination_handler;
+    struct sigaction act;
+    act.sa_handler = SIG_IGN;
     sigemptyset(&act.sa_mask);
     act.sa_flags = 0;
-
-    sigaction(SIGINT, NULL, &oact_interupt);
-    if (oact_interupt.sa_handler != SIG_IGN)
-    {
-        sigaction(SIGINT, &act, NULL);
-    }
-
-    /* manejo de SIGALARM */
-    // sigaction con sigalarm
-    struct sigaction alarm_action, oact_alarm;
-    alarm_action.sa_handler = &alarm_handler;
-    sigaction(SIGALRM, &alarm_action, NULL);
-
-    sigaction(SIGALRM, NULL, &oact_alarm);
-    if (oact_alarm.sa_handler != SIG_IGN)
-    {
-        sigaction(SIGALRM, &alarm_action, NULL);
-    }
-
-    alarm(seconds);
-
+    sigaction(SIGINT, &act, NULL);
+    
     /* manejo de SIGTERM */
     struct sigaction term_action;
+    sigemptyset(&term_action.sa_mask);
+    term_action.sa_flags = 0;
     term_action.sa_handler = &terminate_handler;
     sigaction(SIGTERM, &term_action, NULL);
 
-    while (!end)
-        ; // seguir
+    /* manejo de SIGALARM */
+    // sigaction con sigalarm
+    struct sigaction alarm_action;
+    sigemptyset(&alarm_action.sa_mask);
+    alarm_action.sa_flags = 0;
+    alarm_action.sa_handler = &alarm_handler;
+    sigaction(SIGALRM, &alarm_action, NULL);
+
+
+    while (!end){
+        printf("----\n");
+        alarm(seconds);
+        pause();
+    }
+    
+
 }
