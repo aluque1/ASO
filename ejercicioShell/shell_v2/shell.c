@@ -71,7 +71,7 @@ int main(int argc, char **argv)
         {
             int stat;
             waitpid(listaJobs.fg->progs[0].pid, &stat, WUNTRACED);
-            if (WIFEXITED(stat) )
+            if (WIFEXITED(stat))
             {
                 printf("Job [%d] terminado\n", listaJobs.fg->jobId);
                 terminarJob(&listaJobs, esBg);
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
                 printf("Job [%d] terminado por señal\n", listaJobs.fg->jobId);
                 terminarJob(&listaJobs, esBg);
             }
-            else if (WIFSTOPPED(stat))            
+            else if (WIFSTOPPED(stat))
             {
                 printf("Job [%d] parado\n", listaJobs.fg->jobId);
                 JobNuevo.estado = 1;
@@ -122,5 +122,4 @@ void terminarJob(struct listaJobs *job, int esBg)
     {
         perror("tcsetpgrp error");
     }
-    
 }

@@ -404,7 +404,7 @@ void ord_externa(struct job *job, struct listaJobs *listaJobs, int esBg)
     }
     else if (pid > 1) // Padre
     {
-        struct job * job_new = malloc(sizeof(struct job));
+        struct job *job_new = malloc(sizeof(struct job));
         job_new->texto = job->texto;
         job_new->ordenBuf = job->ordenBuf;
         job_new->numProgs = job->numProgs;
@@ -420,10 +420,9 @@ void ord_externa(struct job *job, struct listaJobs *listaJobs, int esBg)
         {
             tcsetpgrp(STDIN_FILENO, pid);
             listaJobs->fg = job_new;
-        } 
-        else 
+        }
+        else
             printf("[%d] %s\n", job_new->jobId, job_new->ordenBuf);
-        
     }
     else
         perror("fork() error");
