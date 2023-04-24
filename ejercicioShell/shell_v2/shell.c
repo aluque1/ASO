@@ -10,6 +10,7 @@ struct listaJobs listaJobs = {NULL, NULL};
 
 void capturaCtrlC(int sig);
 void capturaCtrlBackslash(int sig);
+void terminarJob(struct listaJobs *job, int esBg);
 
 // Programa principal
 int main(int argc, char **argv)
@@ -20,14 +21,12 @@ int main(int argc, char **argv)
     struct job JobNuevo;
     int esBg = 0;
 
-    // Procesamiento argumentos de entrada (versión simplificada)
     if (argc > 1)
     {
         fprintf(stderr, "Uso: Shell");
         exit(EXIT_FAILURE);
     }
 
-    // Ignorar la señal SIGTTOU, capturar SIGINT, SIGQUIT...
     if (signal(SIGTTOU, SIG_IGN) == SIG_ERR)
     {
         perror("signal");
@@ -51,44 +50,47 @@ int main(int argc, char **argv)
     {
 
         // Si no hay job_en_foreground
-        /*  if (!listaJobs.fg)
-         {
-             // comprueba jobs
-             compruebaJobs(&listaJobs);
-         */
         // Leer ordenes
-        if (!otraOrden)
+        if (listaJobs.fg == NULL)
         {
-            if (leeOrden(stdin, orden))
-                break;
-            otraOrden = orden;
-        }
+            compruebaJobs(&listaJobs);
+            if (!otraOrden)
+            {
+                if (leeOrden(stdin, orden))
+                    break;
+                otraOrden = orden;
+            }
 
-        // Si la orden no es vacia, analizarla y ejecutarla
-        if (!analizaOrden(&otraOrden, &JobNuevo, &esBg) && JobNuevo.numProgs)
+            // Si la orden no es vacia, analizarla y ejecutarla
+            if (!analizaOrden(&otraOrden, &JobNuevo, &esBg) && JobNuevo.numProgs)
+            {
+                ejecutaOrden(&JobNuevo, &listaJobs, esBg);
+            }
+        }
+        else
         {
-            ejecutaOrden(&JobNuevo, &listaJobs, esBg);
+            int stat;
+            waitpid(listaJobs.fg->progs[0].pid, &stat, WUNTRACED);
+            if (WIFEXITED(stat) )
+            {
+                printf("Job [%d] terminado\n", listaJobs.fg->jobId);
+                terminarJob(&listaJobs, esBg);
+            }
+            else if (WIFSIGNALED(stat))
+            {
+                printf("Job [%d] terminado por señal\n", listaJobs.fg->jobId);
+                terminarJob(&listaJobs, esBg);
+            }
+            else if (WIFSTOPPED(stat))            
+            {
+                printf("Job [%d] parado\n", listaJobs.fg->jobId);
+                JobNuevo.estado = 1;
+                listaJobs.fg->estado = 1;
+                tcsetpgrp(STDIN_FILENO, getpid());
+                listaJobs.fg = NULL;
+            }
         }
-        /* } */
-        /*   else
-          {
-              int *status;
-              // Esperar a que acabe el proceso que se encuentra en foreground
-              waitpid(listaJobs.fg->progs[0].pid, status, WUNTRACED);
-              // Recuperar el terminal de control
-              tcsetpgrp(STDIN_FILENO, getpgrp());
-              // Si parada_desde_terminal
-              if (WIFSTOPPED(*status))
-              {
-                  printf("Job %d parado\n", listaJobs.fg->jobId);
-                  // Actualizar el estado del job y la listaç
-              }
-              // (Else) si no
-
-              // Eliminar el job de la lista
-          } */
     }
-
     // Salir del programa (codigo error)
     exit(EXIT_FAILURE);
 }
@@ -98,6 +100,7 @@ void capturaCtrlC(int sig)
 {
     if (listaJobs.fg)
     {
+        kill(listaJobs.fg->pgrp, SIGINT);
     }
 }
 
@@ -105,5 +108,19 @@ void capturaCtrlBackslash(int sig)
 {
     if (listaJobs.fg)
     {
+        kill(listaJobs.fg->pgrp, SIGQUIT);
     }
+}
+
+void terminarJob(struct listaJobs *job, int esBg)
+{
+    listaJobs.fg->runningProgs = 0;
+    listaJobs.fg->estado = 3;
+    eliminaJob(&listaJobs, listaJobs.fg->progs[0].pid, esBg);
+    listaJobs.fg = NULL;
+    if (tcsetpgrp(STDIN_FILENO, getpid()))
+    {
+        perror("tcsetpgrp error");
+    }
+    
 }

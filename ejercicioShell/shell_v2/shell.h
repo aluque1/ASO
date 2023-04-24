@@ -22,6 +22,7 @@ struct job {
     pid_t pgrp;			// ID de grupo de procesos en job
     struct ProgHijo *progs; 	// programas que integran el job (progs[0])
     struct job *sigue;		// enlace al siguiente job activo
+    int estado;			// estado del job (1 si Stopped, 0 si Running, 2 si Done)
 };
 
 struct listaJobs {

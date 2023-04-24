@@ -212,10 +212,14 @@ int analizaOrden(char **ordenPtr, struct job *job, int *esBg)
 
 void ord_exit(struct job *job, struct listaJobs *listaJobs, int esBg)
 {
-
-    // Finalizar todos los jobs
-
-    // Salir del programa
+    struct job *job_act, *job_prev;
+    for (job_act = listaJobs->primero, job_prev = NULL; job_act; job_prev = job_act, job_act = job_act->sigue)
+    {
+        if (job_prev)
+        {
+            liberaJob(job_prev);
+        }
+    }
     exit(EXIT_SUCCESS);
 }
 
@@ -246,7 +250,7 @@ void ord_jobs(struct job *job, struct listaJobs *listaJobs, int esBg)
         if (job_prev)
         {
             printf("[%d] ", job_prev->jobId);
-            // TODO ver si esto es a lo que se refiere el enunciado
+            printf("%s \n", job_prev->estado ? "Running" : "Stopped");
             printf("%s \n", job_prev->texto);
         }
     }
@@ -256,13 +260,25 @@ void ord_jobs(struct job *job, struct listaJobs *listaJobs, int esBg)
 void ord_wait(struct job *job, struct listaJobs *listaJobs, int esBg)
 {
     int id = atoi(job->progs->argv[1]);
-    struct job *job_encontrado, *job_prev;
+    int stat;
+    struct job *job_encontrado;
     job_encontrado = buscaJob(listaJobs, id);
-    job_prev = listaJobs->primero;
 
-    listaJobs->fg = job_encontrado;
-    waitpid(job_encontrado->pgrp, NULL, 0);
-    listaJobs->fg = job_prev;
+    if (job_encontrado == NULL)
+    {
+        perror("No existe el job con jobID especificado");
+    }
+    else if (job_encontrado->estado == 1)
+    {
+        perror("El job no esta Running");
+    }
+    else
+    {
+        tcsetpgrp(STDIN_FILENO, job_encontrado->pgrp);
+        waitpid(job_encontrado->progs[0].pid, &stat, 0);
+        printf("Job[%d] \n", id);
+        tcsetpgrp(STDIN_FILENO, getpid());
+    }
 }
 
 void ord_kill(struct job *job, struct listaJobs *listaJobs, int esBg)
@@ -271,7 +287,11 @@ void ord_kill(struct job *job, struct listaJobs *listaJobs, int esBg)
     struct job *job_encontrado;
     job_encontrado = buscaJob(listaJobs, id);
 
-    if (job_encontrado)
+    if (job_encontrado == NULL)
+    {
+        perror("No existe el job con jobID especificado");
+    }
+    else
     {
         kill(job_encontrado->pgrp, SIGKILL);
     }
@@ -283,38 +303,45 @@ void ord_stop(struct job *job, struct listaJobs *listaJobs, int esBg)
     struct job *job_encontrado;
     job_encontrado = buscaJob(listaJobs, id);
 
-    if (job_encontrado)
+    if (job_encontrado == NULL)
+    {
+        perror("No existe el job con jobID especificado");
+    }
+    else
     {
         kill(job_encontrado->pgrp, SIGSTOP);
+        job_encontrado->estado = 1;
     }
 }
 
 void ord_fg(struct job *job, struct listaJobs *listaJobs, int esBg)
 {
     int id = atoi(job->progs->argv[1]);
-    struct job *job_encontrado, *job_prev;
+    struct job *job_encontrado;
     job_encontrado = buscaJob(listaJobs, id);
 
-    if (job_encontrado)
+    if (job_encontrado != NULL && job_encontrado->estado == 1)
     {
-        job_prev = listaJobs->fg;
+        esBg = 0;
+        tcsetpgrp(STDIN_FILENO, job_encontrado->pgrp);
         listaJobs->fg = job_encontrado;
         kill(job_encontrado->pgrp, SIGCONT);
-        waitpid(job_encontrado->pgrp, NULL, 0);
-        listaJobs->fg = job_prev;
+        job_encontrado->estado = 0;
     }
 }
 
 void ord_bg(struct job *job, struct listaJobs *listaJobs, int esBg)
 {
-
-    // Pasar el job N a background y mandar SIGCONT
-    // Si existe y esta parado mandar señal SIGCONT y actualizar su estado
     int id = atoi(job->progs->argv[1]);
     struct job *job_encontrado;
     job_encontrado = buscaJob(listaJobs, id);
 
-    // Queda ver como se mandan los distinos jobs a background
+    if (job_encontrado != NULL && job_encontrado->estado == 1)
+    {
+        esBg = 1;
+        kill(job_encontrado->pgrp, SIGCONT);
+        job_encontrado->estado = 0;
+    }
 }
 
 // Convierte un struct timeval en segundos (s) y milisegundos (ms)
@@ -340,11 +367,20 @@ void timeval_to_secs(struct timeval *tvp, time_t *s, int *ms)
 
 void ord_times(struct job *job, struct listaJobs *listaJobs, int esBg)
 {
-    time_t t = time(NULL);
-    struct tm tm = *localtime(&t);
-    char *tiempo = malloc(9);
-    strftime(tiempo, 9, "%T", &tm);
-    printf("Current time: %s\n", tiempo);
+    struct rusage *usage = malloc(sizeof(struct rusage));
+    time_t s_utime, s_stime;
+    int ms_utime, ms_stime;
+    if (getrusage(RUSAGE_SELF, usage) == 0)
+    {
+        timeval_to_secs(&usage->ru_utime, &s_utime, &ms_utime);
+        timeval_to_secs(&usage->ru_stime, &s_stime, &ms_stime);
+        printf("User time: %li.%d s\n", s_utime, ms_utime);
+        printf("System time: %li.%d s\n", s_stime, ms_stime);
+    }
+    else
+        perror("getrusage() error");
+
+    free(usage);
 }
 
 void ord_date(struct job *job, struct listaJobs *listaJobs, int esBg)
@@ -359,54 +395,38 @@ void ord_date(struct job *job, struct listaJobs *listaJobs, int esBg)
 // Ejecución de un comando externo
 void ord_externa(struct job *job, struct listaJobs *listaJobs, int esBg)
 {
-    // Duplicar proceso
-
-    // Hijo
-
-    // Crear un nuevo grupo de procesos
-
-    // Ejecutar programa con los argumentos adecuados
-
-    // Si la llamada a execvp retorna es que ha habido un error
-
-    // Padre
-
-    // Crear un nuevo trabajo a partir de la informacion de job
-
-    // Insertar Job en la lista (el jobID se asigna de manera automatica
-
-    // Si no se ejecuta en background
-
-    // Cederle el terminal de control y actualizar listaJobs->fg
-
-    // De lo contrario, informar por pantalla de su ejecucion
     pid_t pid = fork();
 
-    if (pid != 0)
+    if (pid == 0) // Hijo
     {
-        // Si es foreground
-        if (esBg)
+        if (execvp(job->progs[0].argv[0], job->progs[0].argv))
+            perror("execvp() error");
+    }
+    else if (pid > 1) // Padre
+    {
+        struct job * job_new = malloc(sizeof(struct job));
+        job_new->texto = job->texto;
+        job_new->ordenBuf = job->ordenBuf;
+        job_new->numProgs = job->numProgs;
+        job_new->runningProgs = job->runningProgs;
+        job_new->pgrp = getpgid(pid);
+        job_new->progs = job->progs;
+        job_new->progs[0].pid = pid;
+        job_new->sigue = NULL;
+
+        insertaJob(listaJobs, job_new, esBg);
+
+        if (!esBg)
         {
             tcsetpgrp(STDIN_FILENO, pid);
-            listaJobs->fg = job;
-        }
-        // Si es background
-        else
-        {
-            printf("[%d] %d\n", job->jobId, pid);
-        }
-    }
-    else if (pid == 0)
-    {
-        // crea un nuevo grupo de procesos
-        setpgid(0, 0);
-        // ejecuta el programa con los argumentos adecuados
-        execvp(job->progs[0].argv[0], job->progs[0].argv);
+            listaJobs->fg = job_new;
+        } 
+        else 
+            printf("[%d] %s\n", job_new->jobId, job_new->ordenBuf);
+        
     }
     else
-    {
-        perror("Fork not created");
-    }
+        perror("fork() error");
 }
 
 // Realiza la ejecución de la orden
