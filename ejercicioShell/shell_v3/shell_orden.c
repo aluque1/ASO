@@ -18,42 +18,12 @@
 
 extern char **environ;
 
-void mostrarPrompt()
-{
-    char *prompt = "AS:";
-    char cwd[PATH_MAX];
-    getcwd(cwd, sizeof(cwd));
-    if (strcmp(cwd, "/") == 0)
-    {
-        printf("%s/# ", prompt);
-    }
-    else
-    {
-        char *home = getenv("HOME");
-        // overcomplication to replace home with ~ in the prompt
-        if (home != NULL)
-        {
-            char *pos = strstr(cwd, home); // localize home in cwd
-            if (pos != NULL)
-            {
-                char *new_cwd = malloc(strlen(cwd) - strlen(home) + 1);
-                new_cwd[0] = '~';
-                strcat(new_cwd, pos + strlen(home));
-                strcpy(cwd, new_cwd);
-                free(new_cwd);
-            }
-        }
-        printf("%s%s# ", prompt, cwd);
-    }
-}
-
 // Lee una línea de ordenes del fichero fuente
 int leeOrden(FILE *fuente, char *orden)
 {
-
     if (fuente == stdin)
     {
-        mostrarPrompt();
+        printf("# ");
         fflush(stdout);
     }
 
@@ -252,7 +222,7 @@ void ord_exit(struct job *job, struct listaJobs *listaJobs, int esBg)
         }
         job_act = job_act->sigue;
     }
-
+    
     exit(EXIT_SUCCESS);
 }
 
@@ -282,26 +252,26 @@ void ord_jobs(struct job *job, struct listaJobs *listaJobs, int esBg)
     while (job_act != NULL)
     {
         printf("[%d] ", job_act->jobId);
-        switch (job_act->estado)
-        {
-        case RUNNING:
-            printf("%s ", "Running");
-            break;
-        case STOPPED:
-            printf("%s ", "Stopped");
-            break;
-        case DONE:
-            printf("%s ", "Done");
-            break;
-        case TERMINATED:
-            printf("%s ", "Terminated");
-            break;
-        default:
-            break;
-        }
-
-        printf("%s \n", job_act->texto);
-        job_act = job_act->sigue;
+            switch (job_act->estado)
+            {
+            case RUNNING:
+                printf("%s ", "Running");
+                break;
+            case STOPPED:
+                printf("%s ", "Stopped");
+                break;
+            case DONE:
+                printf("%s ", "Done");
+                break;
+            case TERMINATED:
+                printf("%s ", "Terminated");
+                break;
+            default :
+                break;
+            }
+            
+            printf("%s \n", job_act->texto);
+            job_act = job_act->sigue;
     }
 }
 

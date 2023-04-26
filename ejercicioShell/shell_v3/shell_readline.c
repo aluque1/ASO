@@ -1,4 +1,5 @@
-/* #include <stdio.h>
+
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -43,7 +44,7 @@ int  main (int argc, char **argv)
         mostrarPrompt();
 
         // leer linea y analizar comando (historia)
-        linea= readline(NULL); //Libreria readline GNU (ubuntu: libreadline-dev)
+        linea = readline(); //Libreria readline GNU (ubuntu: libreadline-dev)
         cmd = analisisComando(linea);
 
         //ejecutar builtin o orden externa (background/foreground)
@@ -67,8 +68,31 @@ int  main (int argc, char **argv)
 }
 
 void mostrarPrompt() {
-    char * prompt = "asoshell> ";
-    printf("%s", prompt);
+    char *prompt = "AS:";
+    char cwd[PATH_MAX];
+    getcwd(cwd, sizeof(cwd));
+    if (strcmp(cwd, "/") == 0)
+    {
+        printf("%s/# ", prompt);
+    }
+    else
+    {
+        char *home = getenv("HOME");
+        // overcomplication to replace home with ~ in the prompt
+        if (home != NULL)
+        {
+            char *pos = strstr(cwd, home); // localize home in cwd
+            if (pos != NULL)
+            {
+                char *new_cwd = malloc(strlen(cwd) - strlen(home) + 1);
+                new_cwd[0] = '~';
+                strcat(new_cwd, pos + strlen(home));
+                strcpy(cwd, new_cwd);
+                free(new_cwd);
+            }
+        }
+        printf("%s%s# ", prompt, cwd);
+    }
 }
 
 void setupshell() {
@@ -93,14 +117,23 @@ void setupshell() {
     }
 
 
+
+
 }
 
 // TODO mandar dicha señal a todos los procesos del grupo de procesos
 void capturaCtrlC(int sig)
 {
+    if (listaJobs.fg)
+    {
+        kill(listaJobs.fg->pgrp, SIGINT);
+    }
 }
 
 void capturaCtrlBackslash(int sig)
 {
+    if (listaJobs.fg)
+    {
+        kill(listaJobs.fg->pgrp, SIGQUIT);
+    }
 }
- */
