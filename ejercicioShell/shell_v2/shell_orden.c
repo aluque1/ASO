@@ -260,8 +260,13 @@ void ord_jobs(struct job *job, struct listaJobs *listaJobs, int esBg)
             case STOPPED:
                 printf("%s ", "Stopped");
                 break;
-            default:
+            case DONE:
                 printf("%s ", "Done");
+                break;
+            case TERMINATED:
+                printf("%s ", "Terminated");
+                break;
+            default :
                 break;
             }
             
@@ -306,7 +311,9 @@ void ord_kill(struct job *job, struct listaJobs *listaJobs, int esBg)
     }
     else
     {
-        kill(job_encontrado->pgrp, SIGKILL);
+        kill(job_encontrado->progs[0].pid, SIGKILL);
+        job_encontrado->estado = TERMINATED;
+
     }
 }
 
@@ -322,7 +329,7 @@ void ord_stop(struct job *job, struct listaJobs *listaJobs, int esBg)
     }
     else
     {
-        kill(job_encontrado->pgrp, SIGSTOP); // TODO  esto no funciona asi. Ver como
+        kill(job_encontrado->progs[0].pid, SIGSTOP); // TODO  esto no funciona asi. Ver como
         job_encontrado->estado = STOPPED;
     }
 }
@@ -338,7 +345,7 @@ void ord_fg(struct job *job, struct listaJobs *listaJobs, int esBg)
         esBg = 0;
         tcsetpgrp(STDIN_FILENO, job_encontrado->pgrp);
         listaJobs->fg = job_encontrado;
-        kill(job_encontrado->pgrp, SIGCONT);
+        kill(job_encontrado->progs[0].pid, SIGCONT);
         job_encontrado->estado = RUNNING;
     }
 }
@@ -352,7 +359,7 @@ void ord_bg(struct job *job, struct listaJobs *listaJobs, int esBg)
     if (job_encontrado != NULL && job_encontrado->estado == STOPPED)
     {
         esBg = 1;
-        kill(job_encontrado->pgrp, SIGCONT);
+        kill(job_encontrado->progs[0].pid, SIGCONT);
         job_encontrado->estado = RUNNING;
     }
 }
