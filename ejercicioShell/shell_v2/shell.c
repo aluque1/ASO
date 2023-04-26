@@ -95,7 +95,6 @@ int main(int argc, char **argv)
     exit(EXIT_FAILURE);
 }
 
-// TODO mandar dicha señal a todos los procesos del grupo de procesos
 void capturaCtrlC(int sig)
 {
     if (listaJobs.fg)

@@ -212,14 +212,17 @@ int analizaOrden(char **ordenPtr, struct job *job, int *esBg)
 
 void ord_exit(struct job *job, struct listaJobs *listaJobs, int esBg)
 {
-    struct job *job_act, *job_prev;
-    for (job_act = listaJobs->primero, job_prev = NULL; job_act; job_prev = job_act, job_act = job_act->sigue)
+    struct job *job_act;
+    job_act = listaJobs->primero;
+    while (job_act != NULL)
     {
-        if (job_prev)
+        if (job_act->estado == STOPPED)
         {
-            liberaJob(job_prev);
+            kill(job_act->pgrp, SIGKILL);
         }
+        job_act = job_act->sigue;
     }
+    
     exit(EXIT_SUCCESS);
 }
 
@@ -244,19 +247,29 @@ void ord_cd(struct job *job, struct listaJobs *listaJobs, int esBg)
 
 void ord_jobs(struct job *job, struct listaJobs *listaJobs, int esBg)
 {
-    struct job *job_act, *job_prev;
-    for (job_act = listaJobs->primero, job_prev = NULL; job_act; job_prev = job_act, job_act = job_act->sigue)
+    struct job *job_act;
+    job_act = listaJobs->primero;
+    while (job_act != NULL)
     {
-        if (job_prev)
-        {
-            printf("[%d] ", job_prev->jobId);
-            printf("%s \n", job_prev->estado ? "Running" : "Stopped");
-            printf("%s \n", job_prev->texto);
-        }
+        printf("[%d] ", job_act->jobId);
+            switch (job_act->estado)
+            {
+            case RUNNING:
+                printf("%s ", "Running");
+                break;
+            case STOPPED:
+                printf("%s ", "Stopped");
+                break;
+            default:
+                printf("%s ", "Done");
+                break;
+            }
+            
+            printf("%s \n", job_act->texto);
+            job_act = job_act->sigue;
     }
 }
 
-// TODO check if this works as intended
 void ord_wait(struct job *job, struct listaJobs *listaJobs, int esBg)
 {
     int id = atoi(job->progs->argv[1]);
@@ -268,7 +281,7 @@ void ord_wait(struct job *job, struct listaJobs *listaJobs, int esBg)
     {
         perror("No existe el job con jobID especificado");
     }
-    else if (job_encontrado->estado == 1)
+    else if (job_encontrado->estado == STOPPED)
     {
         perror("El job no esta Running");
     }
@@ -309,8 +322,8 @@ void ord_stop(struct job *job, struct listaJobs *listaJobs, int esBg)
     }
     else
     {
-        kill(job_encontrado->pgrp, SIGSTOP);
-        job_encontrado->estado = 1;
+        kill(job_encontrado->pgrp, SIGSTOP); // TODO  esto no funciona asi. Ver como
+        job_encontrado->estado = STOPPED;
     }
 }
 
@@ -320,13 +333,13 @@ void ord_fg(struct job *job, struct listaJobs *listaJobs, int esBg)
     struct job *job_encontrado;
     job_encontrado = buscaJob(listaJobs, id);
 
-    if (job_encontrado != NULL && job_encontrado->estado == 1)
+    if (job_encontrado != NULL && job_encontrado->estado == STOPPED)
     {
         esBg = 0;
         tcsetpgrp(STDIN_FILENO, job_encontrado->pgrp);
         listaJobs->fg = job_encontrado;
         kill(job_encontrado->pgrp, SIGCONT);
-        job_encontrado->estado = 0;
+        job_encontrado->estado = RUNNING;
     }
 }
 
@@ -336,11 +349,11 @@ void ord_bg(struct job *job, struct listaJobs *listaJobs, int esBg)
     struct job *job_encontrado;
     job_encontrado = buscaJob(listaJobs, id);
 
-    if (job_encontrado != NULL && job_encontrado->estado == 1)
+    if (job_encontrado != NULL && job_encontrado->estado == STOPPED)
     {
         esBg = 1;
         kill(job_encontrado->pgrp, SIGCONT);
-        job_encontrado->estado = 0;
+        job_encontrado->estado = RUNNING;
     }
 }
 
@@ -399,6 +412,7 @@ void ord_externa(struct job *job, struct listaJobs *listaJobs, int esBg)
 
     if (pid == 0) // Hijo
     {
+        setpgid(0, 0);
         if (execvp(job->progs[0].argv[0], job->progs[0].argv))
             perror("execvp() error");
     }

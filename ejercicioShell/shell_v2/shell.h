@@ -6,6 +6,9 @@
 
 #define LONG_MAX_ORDEN 250 // longitud max de una cadena de orden
 #define MAX_ARGS 32        // numero maximo de argumentos
+#define RUNNING 0          // estado de un job en ejecucion
+#define STOPPED 1          // estado de un job parado
+#define DONE 2             // estado de un job terminado
 
 // Tipos de datos
 struct ProgHijo
