@@ -36,8 +36,9 @@ void mostrarPrompt()
             char *pos = strstr(cwd, home); // localize home in cwd
             if (pos != NULL)
             {
-                char *new_cwd = malloc(strlen(cwd) - strlen(home) + 1);
+                char *new_cwd = malloc(strlen(cwd) - strlen(home) + 2);
                 new_cwd[0] = '~';
+                new_cwd[1] = '\0';
                 strcat(new_cwd, pos + strlen(home));
                 strcpy(cwd, new_cwd);
                 free(new_cwd);
