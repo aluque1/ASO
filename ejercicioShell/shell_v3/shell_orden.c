@@ -20,17 +20,23 @@
 #define ANSI_COLOR_GREEN "\x1b[32m"
 #define ANSI_COLOR_RESET "\x1b[0m"
 
+int promptSetup = 0; // flag to check if prompt has been set up
 extern char **environ;
 
 void mostrarPrompt()
 {
     char *prompt1, *prompt2;
-    prompt1 = getenv("USER");
-    prompt2 = getenv("XDG_SESSION_DESKTOP");
-    strcat(prompt1, "@");
-    strcat(prompt1, prompt2);
-    strcat(prompt1, ":");
-    
+    if (promptSetup == 0)
+    {
+        prompt1 = getenv("USER");
+        prompt2 = getenv("XDG_SESSION_DESKTOP");
+        strcat(prompt1, "@");
+        strcat(prompt1, prompt2);
+        strcat(prompt1, ":");
+
+        promptSetup = 1;
+    }
+
     char cwd[PATH_MAX];
     getcwd(cwd, sizeof(cwd));
     if (strcmp(cwd, "/") == 0)

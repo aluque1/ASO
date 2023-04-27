@@ -47,7 +47,6 @@ int main(int argc, char **argv)
     // Repetir
     while (1)
     {
-
         // Si no hay job_en_foreground
         // Leer ordenes
         if (listaJobs.fg == NULL)
@@ -121,3 +120,4 @@ void terminarJob(struct listaJobs *job, int esBg)
         perror("tcsetpgrp error");
     }
 }
+

@@ -41,6 +41,7 @@ struct listaJobs
 int leeOrden(FILE *fuente, char *orden);
 int analizaOrden(char **ordenPtr, struct job *job, int *esBg);
 void ejecutaOrden(struct job *job, struct listaJobs *listaJobs, int esBg);
+void mostrarPrompt();
 
 // Prototipos gestion de jobs
 void liberaJob(struct job *job);
