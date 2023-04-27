@@ -38,15 +38,11 @@ void eliminaJob(struct listaJobs *listaJobs, int pid, int esBg)
             // Vaciar el puntero fg
             listaJobs->fg = NULL;
         // Sino
-        else
-            // Informar de la terminación
-            fprintf(stdout, "[%d] Done\t%d\t%s\n", j->jobId, j->progs[0].pid, j->texto);
-
-        // Eliminar el job de la lista
-        if (k)
-            k->sigue = j->sigue;
-        else
-            listaJobs->primero = j->sigue;
+        else // Eliminar el job de la lista
+            if (k)
+                k->sigue = j->sigue;
+            else
+                listaJobs->primero = j->sigue;
 
         // Liberar recursos
         liberaJob(j);
