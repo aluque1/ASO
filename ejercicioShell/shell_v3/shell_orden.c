@@ -16,6 +16,10 @@
 #include <linux/limits.h>
 #include "shell.h"
 
+#define ANSI_COLOR_BLUE "\x1b[34m"
+#define ANSI_COLOR_GREEN "\x1b[32m"
+#define ANSI_COLOR_RESET "\x1b[0m"
+
 extern char **environ;
 
 void mostrarPrompt()
@@ -25,7 +29,9 @@ void mostrarPrompt()
     getcwd(cwd, sizeof(cwd));
     if (strcmp(cwd, "/") == 0)
     {
-        printf("%s/# ", prompt);
+        printf(ANSI_COLOR_GREEN "%s" ANSI_COLOR_RESET, prompt);
+        printf(ANSI_COLOR_BLUE "/" ANSI_COLOR_RESET);
+        printf("# ");
     }
     else
     {
@@ -44,7 +50,9 @@ void mostrarPrompt()
                 free(new_cwd);
             }
         }
-        printf("%s%s# ", prompt, cwd);
+        printf(ANSI_COLOR_GREEN "%s" ANSI_COLOR_RESET, prompt);
+        printf(ANSI_COLOR_BLUE "%s" ANSI_COLOR_RESET, cwd);
+        printf("# ");
     }
 }
 
