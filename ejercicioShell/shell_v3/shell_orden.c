@@ -24,12 +24,18 @@ extern char **environ;
 
 void mostrarPrompt()
 {
-    char *prompt = "AS:";
+    char *prompt1, *prompt2;
+    prompt1 = getenv("USER");
+    prompt2 = getenv("XDG_SESSION_DESKTOP");
+    strcat(prompt1, "@");
+    strcat(prompt1, prompt2);
+    strcat(prompt1, ":");
+    
     char cwd[PATH_MAX];
     getcwd(cwd, sizeof(cwd));
     if (strcmp(cwd, "/") == 0)
     {
-        printf(ANSI_COLOR_GREEN "%s" ANSI_COLOR_RESET, prompt);
+        printf(ANSI_COLOR_GREEN "%s" ANSI_COLOR_RESET, prompt1);
         printf(ANSI_COLOR_BLUE "/" ANSI_COLOR_RESET);
         printf("# ");
     }
@@ -50,7 +56,7 @@ void mostrarPrompt()
                 free(new_cwd);
             }
         }
-        printf(ANSI_COLOR_GREEN "%s" ANSI_COLOR_RESET, prompt);
+        printf(ANSI_COLOR_GREEN "%s" ANSI_COLOR_RESET, prompt1);
         printf(ANSI_COLOR_BLUE "%s" ANSI_COLOR_RESET, cwd);
         printf("# ");
     }
