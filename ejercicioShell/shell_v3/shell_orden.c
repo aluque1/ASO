@@ -25,6 +25,7 @@ extern char **environ;
 
 void mostrarPrompt()
 {
+<<<<<<< HEAD
     char *prompt1, *prompt2;
     if (promptSetup == 0)
     {
@@ -37,11 +38,14 @@ void mostrarPrompt()
         promptSetup = 1;
     }
 
+=======
+    char *prompt = "AS:";
+>>>>>>> parent of d3b2677 (prompt bonito)
     char cwd[PATH_MAX];
     getcwd(cwd, sizeof(cwd));
     if (strcmp(cwd, "/") == 0)
     {
-        printf(ANSI_COLOR_GREEN "%s" ANSI_COLOR_RESET, prompt1);
+        printf(ANSI_COLOR_GREEN "%s" ANSI_COLOR_RESET, prompt);
         printf(ANSI_COLOR_BLUE "/" ANSI_COLOR_RESET);
         printf("# ");
     }
@@ -62,7 +66,7 @@ void mostrarPrompt()
                 free(new_cwd);
             }
         }
-        printf(ANSI_COLOR_GREEN "%s" ANSI_COLOR_RESET, prompt1);
+        printf(ANSI_COLOR_GREEN "%s" ANSI_COLOR_RESET, prompt);
         printf(ANSI_COLOR_BLUE "%s" ANSI_COLOR_RESET, cwd);
         printf("# ");
     }
