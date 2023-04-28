@@ -1,7 +1,7 @@
 #!/bin/sh
 
 date
-sleep 5 
+sleep 15 
 pwd
-sleep 5
+sleep 15
 echo "Fin del script"
