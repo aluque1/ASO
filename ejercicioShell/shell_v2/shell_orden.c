@@ -16,16 +16,35 @@
 #include <linux/limits.h>
 #include "shell.h"
 
+
+#define ANSI_COLOR_BLUE "\x1b[34m"
+#define ANSI_COLOR_GREEN "\x1b[32m"
+#define ANSI_COLOR_RESET "\x1b[0m"
+
+int promptSetup = 0; // flag to check if prompt has been set up
+
 extern char **environ;
 
 void mostrarPrompt()
 {
-    char *prompt = "AS:";
+    char *prompt1, *prompt2;
+    if (promptSetup == 0)
+    {
+        prompt1 = getenv("USER");
+        prompt2 = getenv("XDG_SESSION_DESKTOP");
+        strcat(prompt1, "@");
+        strcat(prompt1, prompt2);
+        strcat(prompt1, ":");
+
+        promptSetup = 1;
+    }
     char cwd[PATH_MAX];
     getcwd(cwd, sizeof(cwd));
     if (strcmp(cwd, "/") == 0)
     {
-        printf("%s/# ", prompt);
+        printf(ANSI_COLOR_GREEN "%s" ANSI_COLOR_RESET, prompt1);
+        printf(ANSI_COLOR_BLUE "/" ANSI_COLOR_RESET);
+        printf("# ");
     }
     else
     {
@@ -44,7 +63,9 @@ void mostrarPrompt()
                 free(new_cwd);
             }
         }
-        printf("%s%s# ", prompt, cwd);
+        printf(ANSI_COLOR_GREEN "%s" ANSI_COLOR_RESET, prompt1);
+        printf(ANSI_COLOR_BLUE "%s" ANSI_COLOR_RESET, cwd);
+        printf("# ");
     }
 }
 
@@ -360,7 +381,7 @@ void ord_stop(struct job *job, struct listaJobs *listaJobs, int esBg)
     }
     else
     {
-        kill(job_encontrado->progs[0].pid, SIGSTOP); // TODO  esto no funciona asi. Ver como
+        kill(job_encontrado->progs[0].pid, SIGSTOP);
         job_encontrado->estado = STOPPED;
     }
 }

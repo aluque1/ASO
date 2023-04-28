@@ -10,6 +10,7 @@ struct listaJobs listaJobs = {NULL, NULL};
 
 void capturaCtrlC(int sig);
 void capturaCtrlBackslash(int sig);
+void capturaCtrlZ(int sig);
 void terminarJob(struct listaJobs *job, int esBg);
 
 // Programa principal
@@ -43,6 +44,16 @@ int main(int argc, char **argv)
         perror("signal");
         exit(EXIT_FAILURE);
     }
+
+    if (signal(SIGTSTP, capturaCtrlZ) == SIG_ERR)
+    {
+        perror("signal");
+        exit(EXIT_FAILURE);
+    }
+    {
+        /* code */
+    }
+    
 
     // Repetir
     while (1)
@@ -107,6 +118,14 @@ void capturaCtrlBackslash(int sig)
     if (listaJobs.fg)
     {
         kill(listaJobs.fg->pgrp, SIGQUIT);
+    }
+}
+
+void capturaCtrlZ(int sig)
+{
+    if (listaJobs.fg)
+    {
+        kill(listaJobs.fg->pgrp, SIGTSTP);
     }
 }
 
