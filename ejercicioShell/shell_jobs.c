@@ -28,11 +28,9 @@ void eliminaJob(struct listaJobs *listaJobs, int pid, int esBg)
     for (j = listaJobs->primero, k = NULL; j; k = j, j = j->sigue)
         if (j->progs[0].pid == pid)
             break;
-
     // Si el job esta en la lista
     if (j)
     {
-
         // Si se trata de un job fg
         if (esBg)
             // Vaciar el puntero fg
@@ -47,7 +45,6 @@ void eliminaJob(struct listaJobs *listaJobs, int pid, int esBg)
         // Liberar recursos
         liberaJob(j);
         free(j);
-
         // Si el job no esta en la lista
     }
     else
@@ -81,12 +78,10 @@ void insertaJob(struct listaJobs *listaJobs, struct job *job, int esBg)
 struct job *buscaJob(struct listaJobs *listaJobs, int jobID)
 {
     struct job *j;
-
     // Localizar final de la listay último jobID
     for (j = listaJobs->primero; j; j = j->sigue)
         if (j->jobId == jobID)
             return j;
-
     // Si no esta en la lista devolver puntero nulo
     return NULL;
 }
@@ -100,7 +95,6 @@ void compruebaJobs(struct listaJobs *listaJobs)
     while ((pid = waitpid(-1, NULL, WNOHANG)) > 0)
         // Informar de su terminación y eliminarlos de la lista
         eliminaJob(listaJobs, pid, 0);
-
     /* Simplificaciones:
         1) Utilizamos la misma función para eliminar fg y bg
         2) Se omite el chequeo de errores

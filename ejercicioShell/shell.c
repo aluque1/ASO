@@ -10,6 +10,7 @@ struct listaJobs listaJobs = {NULL, NULL};
 
 void capturaCtrlC(int sig);
 void capturaCtrlBackslash(int sig);
+void capturaCtrlZ(int sig);
 void terminarJob(struct listaJobs *job, int esBg);
 
 // Programa principal
@@ -44,9 +45,16 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    if (signal(SIGTSTP, capturaCtrlZ) == SIG_ERR)
+    {
+        perror("signal");
+        exit(EXIT_FAILURE);
+    }
+
     // Repetir
     while (1)
     {
+
         // Si no hay job_en_foreground
         // Leer ordenes
         if (listaJobs.fg == NULL)
@@ -71,17 +79,17 @@ int main(int argc, char **argv)
             waitpid(listaJobs.fg->progs[0].pid, &stat, WUNTRACED);
             if (WIFEXITED(stat))
             {
-                printf("Job [%d] terminado\n", listaJobs.fg->jobId);
+                printf("\nJob [%d] terminado\n", listaJobs.fg->jobId);
                 terminarJob(&listaJobs, esBg);
             }
             else if (WIFSIGNALED(stat))
             {
-                printf("Job [%d] terminado por señal\n", listaJobs.fg->jobId);
+                printf("\nJob [%d] terminado por señal\n", listaJobs.fg->jobId);
                 terminarJob(&listaJobs, esBg);
             }
             else if (WIFSTOPPED(stat))
             {
-                printf("Job [%d] parado\n", listaJobs.fg->jobId);
+                printf("\nJob [%d] parado\n", listaJobs.fg->jobId);
                 JobNuevo.estado = 1;
                 listaJobs.fg->estado = 1;
                 tcsetpgrp(STDIN_FILENO, getpid());
@@ -109,6 +117,14 @@ void capturaCtrlBackslash(int sig)
     }
 }
 
+void capturaCtrlZ(int sig)
+{
+    if (listaJobs.fg)
+    {
+        kill(listaJobs.fg->pgrp, SIGSTOP);
+    }
+}
+
 void terminarJob(struct listaJobs *job, int esBg)
 {
     listaJobs.fg->runningProgs = 0;
@@ -120,4 +136,3 @@ void terminarJob(struct listaJobs *job, int esBg)
         perror("tcsetpgrp error");
     }
 }
-

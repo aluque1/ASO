@@ -365,7 +365,6 @@ void ord_kill(struct job *job, struct listaJobs *listaJobs, int esBg)
     {
         kill(job_encontrado->progs[0].pid, SIGKILL);
         job_encontrado->estado = TERMINATED;
-
     }
 }
 
