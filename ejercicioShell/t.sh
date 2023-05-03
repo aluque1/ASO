@@ -1,5 +1,5 @@
 #!/bin/sh
-sleep 5
+sleep 2
 touch testing
-sleep 5
+sleep 2
 date > testing

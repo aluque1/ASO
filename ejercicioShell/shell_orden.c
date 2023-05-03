@@ -16,7 +16,6 @@
 #include <linux/limits.h>
 #include "shell.h"
 
-
 #define ANSI_COLOR_BLUE "\x1b[34m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
 #define ANSI_COLOR_RESET "\x1b[0m"
@@ -27,29 +26,32 @@ extern char **environ;
 
 void mostrarPrompt()
 {
-    char *prompt1, *prompt2;
+    char *prompt;
     if (promptSetup == 0)
     {
+        char *prompt1, *prompt2;
         prompt1 = getenv("USER");
         prompt2 = getenv("XDG_SESSION_DESKTOP");
         strcat(prompt1, "@");
         strcat(prompt1, prompt2);
         strcat(prompt1, ":");
+        prompt = prompt1;
 
         promptSetup = 1;
     }
+    
     char cwd[PATH_MAX];
     getcwd(cwd, sizeof(cwd));
+
     if (strcmp(cwd, "/") == 0)
     {
-        printf(ANSI_COLOR_GREEN "%s" ANSI_COLOR_RESET, prompt1);
+        printf(ANSI_COLOR_GREEN "%s" ANSI_COLOR_RESET, prompt);
         printf(ANSI_COLOR_BLUE "/" ANSI_COLOR_RESET);
         printf("# ");
     }
     else
     {
         char *home = getenv("HOME");
-        // overcomplication to replace home with ~ in the prompt
         if (home != NULL)
         {
             char *pos = strstr(cwd, home); // localize home in cwd
@@ -63,7 +65,7 @@ void mostrarPrompt()
                 free(new_cwd);
             }
         }
-        printf(ANSI_COLOR_GREEN "%s" ANSI_COLOR_RESET, prompt1);
+        printf(ANSI_COLOR_GREEN "%s" ANSI_COLOR_RESET, prompt);
         printf(ANSI_COLOR_BLUE "%s" ANSI_COLOR_RESET, cwd);
         printf("# ");
     }
@@ -280,9 +282,9 @@ void ord_exit(struct job *job, struct listaJobs *listaJobs, int esBg)
 
 void ord_pwd(struct job *job, struct listaJobs *listaJobs, int esBg)
 {
-    char cwd[PATH_MAX];
-    if (getcwd(cwd, sizeof(cwd)) != NULL)
-        printf("%s\n", cwd);
+    char buff[PATH_MAX];
+    if (getcwd(buff, sizeof(buff)) != NULL)
+        printf("%s\n", buff);
     else
         perror("getcwd() error");
 }
@@ -401,6 +403,7 @@ void ord_fg(struct job *job, struct listaJobs *listaJobs, int esBg)
     }
 }
 
+// TODO THIS DOES NOT WORK
 void ord_bg(struct job *job, struct listaJobs *listaJobs, int esBg)
 {
     int id = atoi(job->progs->argv[1]);
@@ -470,6 +473,24 @@ void ord_externa(struct job *job, struct listaJobs *listaJobs, int esBg)
 
     if (pid == 0) // Hijo
     {
+        if (signal(SIGINT, SIG_DFL) == SIG_ERR)
+        {
+            perror("signal");
+            exit(EXIT_FAILURE);
+        }
+
+        if (signal(SIGQUIT, SIG_DFL) == SIG_ERR)
+        {
+            perror("signal");
+            exit(EXIT_FAILURE);
+        }
+
+        if (signal(SIGTSTP, SIG_DFL) == SIG_ERR)
+        {
+            perror("signal");
+            exit(EXIT_FAILURE);
+        }
+
         setpgid(0, 0);
         if (execvp(job->progs[0].argv[0], job->progs[0].argv))
             perror("execvp() error");
@@ -490,6 +511,7 @@ void ord_externa(struct job *job, struct listaJobs *listaJobs, int esBg)
 
         if (!esBg)
         {
+            setpgid(pid, pid); // para asegurarnos de que el tcsetpgrp funciona porque puede que intente dar el control a un grupo que no existe
             tcsetpgrp(STDIN_FILENO, pid);
             listaJobs->fg = job_new;
         }

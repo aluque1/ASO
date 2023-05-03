@@ -35,12 +35,13 @@ void eliminaJob(struct listaJobs *listaJobs, int pid, int esBg)
         if (esBg)
             // Vaciar el puntero fg
             listaJobs->fg = NULL;
-        // Sino
         else // Eliminar el job de la lista
-            if (k)
-                k->sigue = j->sigue;
-            else
-                listaJobs->primero = j->sigue;
+            fprintf(stdout, "Done [%d]\t%s\n", j->jobId, j->texto);
+
+        if (k)
+            k->sigue = j->sigue;
+        else
+            listaJobs->primero = j->sigue;
 
         // Liberar recursos
         liberaJob(j);
@@ -93,7 +94,7 @@ void compruebaJobs(struct listaJobs *listaJobs)
 
     // Mientras haya hijos finalizados
     while ((pid = waitpid(-1, NULL, WNOHANG)) > 0)
-        // Informar de su terminación y eliminarlos de la lista
+
         eliminaJob(listaJobs, pid, 0);
     /* Simplificaciones:
         1) Utilizamos la misma función para eliminar fg y bg

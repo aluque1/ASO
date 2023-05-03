@@ -8,9 +8,6 @@
 // Variables globales
 struct listaJobs listaJobs = {NULL, NULL};
 
-void capturaCtrlC(int sig);
-void capturaCtrlBackslash(int sig);
-void capturaCtrlZ(int sig);
 void terminarJob(struct listaJobs *job, int esBg);
 
 // Programa principal
@@ -33,19 +30,19 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    if (signal(SIGINT, capturaCtrlC) == SIG_ERR)
+    if (signal(SIGINT, SIG_IGN) == SIG_ERR)
     {
         perror("signal");
         exit(EXIT_FAILURE);
     }
 
-    if (signal(SIGQUIT, capturaCtrlBackslash) == SIG_ERR)
+    if (signal(SIGQUIT, SIG_IGN) == SIG_ERR)
     {
         perror("signal");
         exit(EXIT_FAILURE);
     }
 
-    if (signal(SIGTSTP, capturaCtrlZ) == SIG_ERR)
+    if (signal(SIGTSTP, SIG_IGN) == SIG_ERR)
     {
         perror("signal");
         exit(EXIT_FAILURE);
@@ -54,7 +51,6 @@ int main(int argc, char **argv)
     // Repetir
     while (1)
     {
-
         // Si no hay job_en_foreground
         // Leer ordenes
         if (listaJobs.fg == NULL)
@@ -79,7 +75,6 @@ int main(int argc, char **argv)
             waitpid(listaJobs.fg->progs[0].pid, &stat, WUNTRACED);
             if (WIFEXITED(stat))
             {
-                printf("\nJob [%d] terminado\n", listaJobs.fg->jobId);
                 terminarJob(&listaJobs, esBg);
             }
             else if (WIFSIGNALED(stat))
@@ -99,30 +94,6 @@ int main(int argc, char **argv)
     }
     // Salir del programa (codigo error)
     exit(EXIT_FAILURE);
-}
-
-void capturaCtrlC(int sig)
-{
-    if (listaJobs.fg)
-    {
-        kill(listaJobs.fg->pgrp, SIGINT);
-    }
-}
-
-void capturaCtrlBackslash(int sig)
-{
-    if (listaJobs.fg)
-    {
-        kill(listaJobs.fg->pgrp, SIGQUIT);
-    }
-}
-
-void capturaCtrlZ(int sig)
-{
-    if (listaJobs.fg)
-    {
-        kill(listaJobs.fg->pgrp, SIGSTOP);
-    }
 }
 
 void terminarJob(struct listaJobs *job, int esBg)
