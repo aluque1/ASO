@@ -29,13 +29,13 @@ void mostrarPrompt()
     char *prompt;
     if (promptSetup == 0)
     {
-        char *prompt1, *prompt2;
-        prompt1 = getenv("USER");
-        prompt2 = getenv("XDG_SESSION_DESKTOP");
-        strcat(prompt1, "@");
-        strcat(prompt1, prompt2);
-        strcat(prompt1, ":");
-        prompt = prompt1;
+        char *alu, *que;
+        alu = getenv("USER");
+        que = getenv("XDG_SESSION_DESKTOP");
+        strcat(alu, "@");
+        strcat(alu, que);
+        strcat(alu, ":");
+        prompt = alu;
 
         promptSetup = 1;
     }
