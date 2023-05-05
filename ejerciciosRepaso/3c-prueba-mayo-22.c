@@ -6,7 +6,6 @@
 #include <signal.h>
 #include <string.h>
 
-
 int terminar = 0;
 void shandler(int signo)
 {
@@ -20,8 +19,13 @@ void shandler(int signo)
 int main(void)
 {
     pid_t pid;
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, SIGUSR1);
+    sigprocmask(SIG_BLOCK, &set, NULL);
     printf("Soy el proceso pid = %d\n", getpid());
     signal(SIGUSR1, SIG_IGN);
+
     if ((pid = fork()) != 0)
     {
         printf("Enviando SIGUSR1 ...\n");
@@ -31,6 +35,7 @@ int main(void)
     {
         printf("Soy el proceso %d, mi padre es %d\n", getpid(), getppid());
         signal(SIGUSR1, shandler);
+        sigprocmask(SIG_UNBLOCK, &set, NULL);
         while (!terminar)
             ;
     }
