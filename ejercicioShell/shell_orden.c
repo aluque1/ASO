@@ -403,7 +403,6 @@ void ord_fg(struct job *job, struct listaJobs *listaJobs, int esBg)
     }
 }
 
-// TODO THIS DOES NOT WORK
 void ord_bg(struct job *job, struct listaJobs *listaJobs, int esBg)
 {
     int id = atoi(job->progs->argv[1]);
